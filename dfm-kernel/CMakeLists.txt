@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.2)
 project(uhdsos_dfm)
 
+set(uhdsos_dfm_VERSION_MAJOR 0)
+set(uhdsos_dfm_VERSION_MINOR 1)
 
 message(";; source directory: ${PROJECT_SOURCE_DIR}")
 message(";; binary directory: ${PROJECT_BINARY_DIR}")

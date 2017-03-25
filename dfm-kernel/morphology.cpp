@@ -1,12 +1,13 @@
 /*
- * crossCorrelation.cpp
+ * morphology.cpp
  *
  *  Created on: March 20, 2017
  *      Author: saigopal nelaturi
  */
 
-#include "crossCorrelation.h"
+#include "morphology.h"
 #include "assert.h"
+
 
 
 
@@ -22,8 +23,7 @@ array sublevel(array x, double measure){
 
 double volume(array x){
 	// return number of non-zero elements
-	array c = count(x);
-	//af_print(c);
+	array c = count(x); 
 	return 0;
 }
 
@@ -41,10 +41,11 @@ array reflect(array x){
 
 array crossCorrelate (array x, array y) { 
 	 // Here x is the static function and y is a window that moves over x and measures overlaps 
-	return convolve3(x,reflect(y),AF_CONV_EXPAND,AF_CONV_AUTO);
+	return convolve3(x,reflect(y),AF_CONV_DEFAULT,AF_CONV_AUTO);
 }
 
-
-
+array opening(array x, array y) {
+	return (dilate3(erode3(x,y),y));
+}
 
 
