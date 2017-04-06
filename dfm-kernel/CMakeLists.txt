@@ -79,6 +79,14 @@ message("Lib[Boost] include directory: ${Boost_INCLUDE_DIR}")
 message("Lib[Boost] libraries: ${Boost_LIBRARIES}")
 include_directories(${Boost_INCLUDE_DIR}) 
 
+find_package(VTK REQUIRED)
+message("Lib[VTK] use file: ${VTK_USE_FILE}")
+message("Lib[VTK] include directory: ${VTK_INCLUDE_DIR}")
+message("Lib[VTK] libraries: ${VTK_LIBRARIES}")
+include(${VTK_USE_FILE})
+target_link_libraries(uhdsos_dfm_lib ${VTK_LIBRARIES})
+
+
 target_link_libraries(uhdsos_dfm uhdsos_dfm_lib)
 
 

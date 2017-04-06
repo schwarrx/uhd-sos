@@ -49,3 +49,15 @@ array opening(array x, array y) {
 }
 
 
+array crossCorrelateFFTR2C(array x, array y){
+	// Use explicit invocation of R2C fft 
+	//dim4 xdims = x.dims();
+	//dim4 ydims = y.dims();
+	//const dim_t pad0  = xdims[0] + ydims[0];
+	//const dim_t pad1  = xdims[1] + ydims[1];
+	//const dim_t pad2  = xdims[2] + ydims[2];
+	fft3InPlace(x);
+	return x;
+	
+	
+}
