@@ -21,10 +21,11 @@ array sublevel(array x, double measure){
 	return (x >= measure-0.0001);
 }
 
-double volume(array x){
+unsigned  volume(array x){
 	// return number of non-zero elements
-	array c = count(x); 
-	return 0;
+	unsigned nnz= count<unsigned>(x >0);   
+	std::cout << nnz << std::endl;
+	return nnz;
 }
 
 array sublevelComplement(array x, double measure){

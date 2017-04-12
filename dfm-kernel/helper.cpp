@@ -139,9 +139,11 @@ af::array read_binvox(string filespec)
 }
 
 
-void visualize(array x){
+void visualize(array x,  float levelSet, float decimation){
 	// copy data from device to host and visualize on vtk
 	// not sure how to do this visualization directly in AF
+	// function also requires the level set and the decimation
+	// expressed as a percentage in [0,1]. 
 	
 	array x1 = x.as(f32) ;
 	float *host_x = x1.host<float>(); // copy from device to host - expensive
@@ -174,7 +176,7 @@ void visualize(array x){
 	mc->SetInput(imageData);
 	mc->ComputeNormalsOn();
 	mc->ComputeGradientsOn();
-	mc->SetValue(0, 1);  // second value acts as threshold
+	mc->SetValue(0, levelSet); 
 
 
 	vtkSmartPointer<vtkDecimatePro> decimate =
@@ -185,7 +187,7 @@ void visualize(array x){
  	 decimate->SetInputData(input);
 	#endif
   	//decimate->SetTargetReduction(.99); //99% reduction (if there was 100 triangles, now there will be 1)
-  	decimate->SetTargetReduction(0); //10% reduction (if there was 100 triangles, now there will be 90)
+  	decimate->SetTargetReduction(decimation); 
   	decimate->Update();
 
 	// To remain largest region
@@ -225,7 +227,7 @@ void visualize(array x){
 	ren1->AddViewProp(actor);
 	ren1->ResetCamera();
 	renWin->AddRenderer(ren1);
-	renWin->SetSize(301,300); // intentional odd and NPOT  width/height
+	renWin->SetSize(501,500); // intentional odd and NPOT  width/height
 
 	vtkSmartPointer<vtkRenderWindowInteractor> iren =
 			vtkSmartPointer<vtkRenderWindowInteractor>::New();

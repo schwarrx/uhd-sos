@@ -13,6 +13,6 @@
 typedef unsigned char byte;
  
 af::array read_binvox(std::string filespec); 
-void visualize(af::array x);
+void visualize(af::array x,  float levelSet, float decimation);
 
 #endif /* HELPER_H_ */
