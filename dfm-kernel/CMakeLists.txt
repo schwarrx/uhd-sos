@@ -74,10 +74,13 @@ if(OPENMP_FOUND)
 endif()
 
 # BOOST 
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED )
 message("Lib[Boost] include directory: ${Boost_INCLUDE_DIR}")
 message("Lib[Boost] libraries: ${Boost_LIBRARIES}")
 include_directories(${Boost_INCLUDE_DIR}) 
+
+FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED) 
+TARGET_LINK_LIBRARIES(uhdsos_dfm_lib ${Boost_LIBRARIES})
 
 find_package(VTK REQUIRED)
 message("Lib[VTK] use file: ${VTK_USE_FILE}")

@@ -42,9 +42,10 @@ public:
 			nslices = dim;
 		
 		selem = af::array(dim,dim,dim,f32);
+		std::cout << selem.dims() << std::endl;
 		
 		double center = dim/2; // the af::arrays are expected to be powers of 2
-		gfor(seq i, nslices){ 
+		for(int i = 0; i < nslices; i++){ 
 			for(int j = 0; j < dim; j++){
 				for(int k = 0; k < dim; k++){
 					selem(i,j,k) = pow((j-center),2)+ pow((k-center),2); 
@@ -53,13 +54,13 @@ public:
 				}
 			}
 		}
-		std::cout << "here" << std::endl;
+		
 		if(EnumVal == StructuringElementType::Cylinder 
 			|| EnumVal == StructuringElementType::Sphere){
 			double radius = il.begin()[0];
 			selem  = selem <= (pow(radius,2));
 		}
-		//print("structuring element =",selem);
+		//af_print(selem);
 	}
 	
 	af::array getSelem(){
