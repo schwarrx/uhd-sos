@@ -14,7 +14,7 @@
 
 #include <arrayfire.h>
 
-#include "helper.h"
+#include "helper.hpp"
 // vtk stuff  
 #include <vtkSmartPointer.h>
 #include <vtkImageData.h>
@@ -36,6 +36,7 @@ using namespace af;
 
 af::array read_binvox(string filespec)
 {
+	cout << "Reading binvox file " << endl;
 	// reads a binvox file
 	static int version;
 	static int depth, height, width;
@@ -128,6 +129,7 @@ af::array read_binvox(string filespec)
 
 	input->close();
 
+	// SN - code below copies the voxels into an arrayfire array
 	af::array A = af::array(width, depth, height, voxels);
 	A = A.as(f32);
 	//cout << "read " << nr_voxels << " voxels" << endl;

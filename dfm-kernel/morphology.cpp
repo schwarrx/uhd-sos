@@ -5,7 +5,7 @@
  *      Author: saigopal nelaturi
  */
 
-#include "morphology.h"
+#include "morphology.hpp"
 #include "assert.h"
 
 
