@@ -1,3 +1,4 @@
+
 /*******************************************************
  * Author - S Nelaturi
  * Testing arrayfire based cross correlation
@@ -11,12 +12,8 @@
 #include <assert.h> 
 #include <af/macros.h>
 
-#include "morphology.hpp"
-#include "helper.hpp"
-#include "selem.hpp"
+#include "dfm.hpp"
 #include "options.hpp"
-#include "voxelvolume.hpp"
-
 
 using namespace std;
 
@@ -36,11 +33,17 @@ int main(int argc, char *argv[])
 		if(!argsOk){
 			return 1;
 		}
+		
+		
+		dfmAnalysis(binvoxFile, device);
          
-        voxelVolume* partHost = new voxelVolume(binvoxFile);
-        int* dims = partHost->getDims();
-        cout << "Part dimensions = "<< dims[0] << ", "<< dims[1] << ", " << dims[2] << endl;
+       
                            
+        /*                   	
+		array x1 = x.as(f32) ;
+		float *host_x = x1.host<float>(); 
+		*/
+	
 		/*
 		af::setDevice(device);
 		af::info();
@@ -57,12 +60,14 @@ int main(int argc, char *argv[])
 		cout << "PART DIMENSIONS=" <<  part.dims() << endl;
 		*/
   	
-  		StructuringElement<StructuringElementType::Sphere,32> sp = {15};
+  		//af::setDevice(device);
+  		
   		//af::array selem = getSphereSelem(15,32);  // selem or 'structuring element' is the min manf feature.
-  		af::array selem = sp.getSelem();
+  
+  		
   	
-  		visualize(selem, 1, 0.1);
-  		AF_MEM_INFO("Memory=");
+  		//visualize(selem, 1, 0.1);
+  		//AF_MEM_INFO("Memory=");
 		
 		/*
 		
