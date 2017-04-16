@@ -23,8 +23,7 @@ array sublevel(array x, double measure){
 
 unsigned  volume(array x){
 	// return number of non-zero elements
-	unsigned nnz= count<unsigned>(x >0);   
-	std::cout << nnz << std::endl;
+	unsigned nnz= count<unsigned>(x >0);    
 	return nnz;
 }
 
@@ -42,7 +41,7 @@ array reflect(array x){
 
 array crossCorrelate (array x, array y) { 
 	 // Here x is the static function and y is a window that moves over x and measures overlaps 
-	return convolve3(x,reflect(y),AF_CONV_DEFAULT,AF_CONV_AUTO);
+	return convolve3(x,reflect(y),AF_CONV_EXPAND,AF_CONV_AUTO);
 }
 
 array opening(array x, array y) {

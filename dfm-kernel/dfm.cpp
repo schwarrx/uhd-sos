@@ -8,6 +8,66 @@
 #include "dfm.hpp" 
 #include "morphology.hpp"
 #include <cassert>
+#include <thread> 
+#include <vector>
+#include <cmath>
+#include <mutex>
+
+class ThreadPool {
+ 
+public:
+ 
+	template<typename Index, typename Callable>
+	static void ParallelFor(Index start, Index end, Callable func) {
+		// Estimate number of threads in the pool
+		const static unsigned nb_threads_hint = std::thread::hardware_concurrency();
+		const static unsigned nb_threads = (nb_threads_hint == 0u ? 8u : nb_threads_hint);
+		
+		cout << "Number of threads = " << nb_threads << endl;
+ 
+		// Size of a slice for the range functions
+		Index n = end - start + 1;
+		Index slice = (Index) std::round(n / static_cast<double> (nb_threads));
+		slice = std::max(slice, Index(1));
+ 
+		// [Helper] Inner loop
+		auto launchRange = [&func] (int k1, int k2) {
+			for (Index k = k1; k < k2; k++) {
+				func(k);
+			}
+		};
+ 
+		// Create pool and launch jobs
+		std::vector<std::thread> pool;
+		pool.reserve(nb_threads);
+		Index i1 = start;
+		Index i2 = std::min(start + slice, end);
+		for (unsigned i = 0; i + 1 < nb_threads && i1 < end; ++i) {
+			pool.emplace_back(launchRange, i1, i2);
+			i1 = i2;
+			i2 = std::min(i2 + slice, end);
+		}
+		if (i1 < end) {
+			pool.emplace_back(launchRange, i1, end);
+		}
+ 
+		// Wait for jobs to finish
+		for (std::thread &t : pool) {
+			if (t.joinable()) {
+				t.join();
+			}
+		}
+	}
+ 
+	// Serial version for easy comparison
+	template<typename Index, typename Callable>
+	static void SequentialFor(Index start, Index end, Callable func) {
+		for (Index i = start; i < end; i++) {
+			func(i);
+		}
+	}
+ 
+};
 
 int getNBlocks(int resultDim, int inputDim) {
 	/// return the number of blocks we will compute the convolution for
@@ -43,31 +103,18 @@ af::array sliceHostVoxelVolume(int xmin, int xmax, int ymin, int ymax, int zmin,
 	
 	int dim = (xmax-xmin);
 	int* dims = inputVolume->getDims();
-	cout << "this block's dimension = " << dim << " within a " << dims[0] << " volume" << endl;
+	//cout << "this block's dimension = " << dim << " within a " << dims[0] << " volume" << endl;
 	
 	auto hostVolData = inputVolume->getHostVolume();
 	
 	static int size = pow(dim,3) ;
 	std::vector<float> hostSlice = std::vector<float>(size,0);
 	int count = 0;
-	
-	/*
-	int firstIndex = xyzToIndex(xmin, ymin, zmin, dims[0]);
-	int lastIndex = xyzToIndex(xmax,ymax,zmax,dims[0]);
-	
-	int* firstIdDims = indexToxyz(firstIndex, dim);
-	int* lastIdDims = indexToxyz(lastIndex, dim);
-	
-	cout << firstIdDims[0] << "," << firstIdDims[1] << ","<< firstIdDims[2] << "and "<< lastIdDims[0] << "," << lastIdDims[1] << "," << lastIdDims[2] << endl;
-	
-	auto first = hostVolData.begin()+ firstIndex ;
-	auto last = hostVolData.begin() + lastIndex ;
-	std::copy(first, last, 	hostSlice.begin());
-	*/
-	
+	 
 	
 	// can we use the fact that hostVolume is a vector and copy by reference?
-	cout << "Slicing array " << endl;
+	//cout << "Slicing array " << endl; 
+	// This is VERY slow -- consider boost multidimensional arrrays
 	for(int k = zmin; k < zmax; k++){
 		for(int j = ymin; j < ymax; j++) {
 			for (int i = xmin; i < xmax; i++) {
@@ -78,14 +125,14 @@ af::array sliceHostVoxelVolume(int xmin, int xmax, int ymin, int ymax, int zmin,
 	}
 	
 	af::array slice = af::array(dim,dim,dim,hostSlice.data());
-	cout << "done slicing " << endl;
+	//cout << "done slicing " << endl;
 	
 	return slice;
 	
 }
 
 
-void processBlock(int startBlockId, int nBlocksPerDim, int inputDim, int selemDim, voxelVolume* inputVolume,af::array selem,  bool correlate) {
+af::array processBlock(int startBlockId, int nBlocksPerDim, int inputDim, int selemDim, voxelVolume* inputVolume,af::array selem,  bool correlate) {
 
 
 			int* indices = indexToxyz(startBlockId, nBlocksPerDim);
@@ -93,21 +140,90 @@ void processBlock(int startBlockId, int nBlocksPerDim, int inputDim, int selemDi
 			int j = indices[1];
 			int i = indices[0];
 			cout << i << "," << j << "," << k << endl;
-			std::cout << "af::array = Part[" << i*inputDim<< ":" <<(i+1)*inputDim << "," << j*inputDim << ":" << (j+1)*inputDim <<
-					  ", "<< k*inputDim << ":" << (k+1)*inputDim << "]" <<  std::endl;
+			std::cout << "af::array = Part[" << i*inputDim<< ":" <<(i+1)*inputDim << "," << j*inputDim << ":" << (j+1)*inputDim <<  ", "<< k*inputDim << ":" << (k+1)*inputDim << "]" <<  std::endl;
 					  
-			af::array block = sliceHostVoxelVolume( i*inputDim, (i+1)*inputDim, j*inputDim, (j+1)*inputDim, k*inputDim, (k+1)*inputDim, inputVolume);
-			cout << block.dims() << endl;
-
-			//blocks(af::span, af::span, af::span, x) = crossCorrelate(block, selem);
-			crossCorrelate(block,selem);
-		//}
+			af::array block = sliceHostVoxelVolume( i*inputDim, (i+1)*inputDim, j*inputDim, (j+1)*inputDim, k*inputDim, (k+1)*inputDim, inputVolume); 
+ 
+			return crossCorrelate(block,selem); 
 		
 
 }
 
+void slicedConvolution( voxelVolume* partHost, af::array selem, int blockSize, bool correlate) {
+	/** Compute the convolution/correlation of partHost with selem on a single GPU by breaking 
+	* down the partHost into several 3d slices or blocks of size blockDim * blockDim * blockDim.
+	* The convolution for each slice is calculated and the output is merged into an ArrayFire array
+	* that is stored on the device. There are several optimizations possible for this code to increase speedup
+	* TODO - change function signature to take in the device and the StructuringElement generated on the host
+	* as inputs so that all GPU related activity takes place within this function.
+	*/
+	int* dims = partHost->getDims();
+    cout << "Part dimensions = "<< dims[0] << ", "<< dims[1] << ", " << dims[2] << endl;
+    
+	int nBlocks = getNBlocks(blockSize,dims[0]) ; 
+	std::cout << " We will divide the input volume into " << nBlocks << " blocks" << std::endl;
+	int nBlocksPerDim = dims[0]/blockSize; 
+	
+	int dimRes = dims[0]+selem.dims()[0]; // dimensions of the result convolution
+	cout << "Result dimension = " << dimRes << endl;
+	af::array result(dimRes, dimRes, dimRes);
+	
+	int resBlockSize = blockSize + selem.dims()[0];
+	cout <<"Result block size = " << resBlockSize << endl;
+	
+	cout << "starting " << endl; 
+	af::timer::start();
+		
+//#pragma omp parallel for
+	for(int i =0; i < nBlocks; i++){
+	//std::mutex critical;
+	//ThreadPool::ParallelFor(0, nBlocks, [&] (int i) {
+	//	std::lock_guard<std::mutex> lock(critical);
+	//gfor(seq i, nBlocks){
+		af::array out = processBlock(i,nBlocksPerDim,blockSize,32, partHost, selem,true);
+		std::cout << out.dims() << std::endl;
+		// now insert this slice into the result
+		int* indices = indexToxyz(i, dimRes);
+		int z = indices[2];
+		int y = indices[1];
+		int x = indices[0];
+		cout << x*resBlockSize << "," << (x+1)*resBlockSize-1 << endl;
+		af::array sl = result(seq(x*resBlockSize,(x+1)*resBlockSize),seq(y *resBlockSize,(y+1)*resBlockSize), seq(z*resBlockSize,(z+1)*resBlockSize)) ;
+		cout << sl.dims();
+		result(seq(x*resBlockSize,(x+1)*resBlockSize),seq(y *resBlockSize,(y+1)*resBlockSize), seq(z*resBlockSize,(z+1)*resBlockSize)) = out;
+		
+	};
+    cout << "Done computing in  " << af::timer::stop() << " s" <<  endl;
 
+}
 
+af::array morphologicalDFM(voxelVolume* partHost, af::array selem){
+	/**  DFM analysis on GPU using pure morphological operations.
+	* Note that this approach places a limitation on the size of the
+	* structuring element selem (maximum 7x7x7 volume). The approach
+	* works for partHosts with 1024^3 resolution. The inputs are 
+	* unsigned chars so occupy very little space. 
+	*/
+	int* dims = partHost->getDims();
+	cout << "Part dimensions = "<< dims[0] << ", "<< dims[1] << ", " << dims[2] << endl;
+	cout << "Copying volume to GPU " << endl;
+	af::array part(dims[0], dims[1], dims[2], (partHost->getHostVolume()).data());
+	// calculate the morphological opening
+	cout << "starting " << endl; 
+	af::timer::start(); 
+	af::array open = opening(part, selem);
+	cout << "Done computing opening in  " << af::timer::stop() << " s" <<  endl;
+	cout << "Computing part - opening " << endl;
+	af::timer::start(); 
+	af::array out =  part - open;
+	cout << "Done computing non manufacturable features in  " << af::timer::stop() << " s" <<  endl;
+	cout << "Volume before dfm analysis = " << volume(part)  << endl;
+	cout << "Volume after dfm analysis = " << volume(out) << endl;
+	cout << "Copying to host and finishing GPU context " << endl;
+	
+	return out;
+	
+}
 
 
 void dfmAnalysis(std::string binvoxFile, int device)
@@ -122,55 +238,26 @@ void dfmAnalysis(std::string binvoxFile, int device)
 	cout << "done" <<endl;
 	// create the part voxel volume on the host 
 	voxelVolume* partHost = new voxelVolume(binvoxFile); 
-    int* dims = partHost->getDims();
-    cout << "Part dimensions = "<< dims[0] << ", "<< dims[1] << ", " << dims[2] << endl;
     //partHost->visualizeVolume(1,0.1);  // visualize the volume if needed
         
     
     // create a structuring element
-    SphereElement<32> sp({15});  
-    
-    
-	//sp.visualizeVolume(1,0.9);
-	// create an arrayfire array for the structuring element
-	
-	int selemDim = 32; // could do this using a getDim but that's not needed
+    SphereElement<7> sp({4});   
+	int selemDim = 7; // could do this using a getDim but that's not needed
 	
 	
-	cout << "Selem start " << endl;
-	
-	
+	cout << "Selem start " << endl; 
 	auto selemVolData = sp.getHostVolume();
-	af::array selem(selemDim, selemDim, selemDim, &selemVolData[0]);
+	af::array selem(selemDim, selemDim, selemDim, selemVolData.data());
 	selem = selem.as(f32);
-	//cout << "Selem generated" << endl;
+	cout << "Selem generated" << endl;
 	
+	// we want to break up the calculation into blocks 
+	//int blockSize = 256;
 	
-	/*
-	for(int k = 0; k < selemDim; k++){
-		for(int j = 0; j < selemDim; j++) {
-			for (int i = 0; i < selemDim; i++) {
-				selem(i,j,k) = (float)(selemVolData[k*dims[0]*dims[1]+j*dims[1]+i]); 
-			}
-		}
-	}
-	cout << "Created structuring element " << endl;
-	*/
-	
-	
-	// we want to break up the calculation into blocks of 256^3 
-	// and we assume the input is dims[0]^3, i.e. dims[i] = dims[j]
-	// i = 0..2, j = 0..2
-	int nBlocks = getNBlocks(256,dims[0]) ; 
-	std::cout << " We will divide the input volume into " << nBlocks << " blocks" << std::endl;
-	int nBlocksPerDim = dims[0]/256; 
-	 
-	for(int i = 0; i < nBlocks; i++){
-		processBlock(i,nBlocksPerDim,256,32, partHost, selem,true);
-	}
-	
-			// create a 4d array whose 3d-slices are the blocks to be processed in parallel 
-		// on the gpu that is set as the device before calling this function.
+	//slicedConvolution(partHost, selem, blockSize, true);
+	morphologicalDFM(partHost, selem);
+
 
 }
 
@@ -178,12 +265,6 @@ void dfmAnalysis(std::string binvoxFile, int device)
 
 
 
-		//int dimRes = inputDim+selemDim-1 ; // the convolution size	 
-		
-		// before allocating we need to make sure the device has enough memory - TODO
-		
-		//int n = pow(dim,3);
-		
 		//af::array blocks(dimRes,dimRes,dimRes,n );
 		 
 		//unsigned ij = dim*dim;
