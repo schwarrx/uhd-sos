@@ -7,17 +7,6 @@
  
 #include "voxelvolume.hpp"
 
-// vtk stuff for marching cubes and mesh decimation
-
-#include <vtkMarchingCubes.h>
-#include <vtkPolyDataConnectivityFilter.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkActor.h>
-#include <vtkProperty.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h> 
-#include <vtkDecimatePro.h>
 
 using namespace std;
 
@@ -167,35 +156,7 @@ void voxelVolume::processHeader(std::ifstream* input){
 
 
 
-vtkSmartPointer<vtkImageData> voxelVolume::create3dVTKImage() {
 
-	///create image data from the host array
-	vtkSmartPointer<vtkImageData> imageData = vtkSmartPointer<vtkImageData>::New();
-	
-	//specify size of image data
-	cout << "Image data dimensions = " << dims[0] << ","<< dims[1] << "," << dims[2] << endl;
-	
-	imageData->SetDimensions(dims[0],dims[1],dims[2]);
-#if VTK_MAJOR_VERSION <= 5
-	imageData->SetNumberOfScalarComponents(1);
-	imageData->SetScalarTypeToDouble();
-#else
-	imageData->AllocateScalars(VTK_DOUBLE,1);
-#endif
-	//populate imageData array
-	cout << "Copying to imageData and visualizing" << endl;
-	for(int k = 0; k < dims[2]; k++){
-		for (int j = 0; j < dims[1]; j++){
-			for (int i = 0; i < dims[0]; i++){
-				double *voxel = static_cast<double*>(imageData->GetScalarPointer(i,j,k));
-				voxel[0] =  hostVol[j*dims[0]*dims[1]+i*dims[1]+k] * 255.0;  
-			}
-		}
-	}
-	
-	return imageData;
-
-}
 
 
 void voxelVolume::visualizeVolume(float levelSet, float decimation){
@@ -203,74 +164,8 @@ void voxelVolume::visualizeVolume(float levelSet, float decimation){
 	* voxel volume generated on the host. 
 	*/
  
-	vtkSmartPointer<vtkImageData> imageData = create3dVTKImage();
-
-	// Create a 3D model using marching cubes
-	vtkSmartPointer<vtkMarchingCubes> mc =
-			vtkSmartPointer<vtkMarchingCubes>::New();
-	mc->SetInput(imageData);
-	mc->ComputeNormalsOn();
-	mc->ComputeGradientsOn();
-	mc->SetValue(0, levelSet); 
-
-
-	vtkSmartPointer<vtkDecimatePro> decimate =
-	   vtkSmartPointer<vtkDecimatePro>::New();
-	#if VTK_MAJOR_VERSION <= 5
-  	decimate->SetInputConnection(mc->GetOutputPort());
-	#else
- 	 decimate->SetInputData(input);
-	#endif
-  	//decimate->SetTargetReduction(.99); //99% reduction (if there was 100 triangles, now there will be 1)
-  	decimate->SetTargetReduction(decimation); 
-  	decimate->Update();
-
-	// To remain largest region
-	vtkSmartPointer<vtkPolyDataConnectivityFilter> confilter =
-			vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
-	confilter->SetInputConnection(decimate->GetOutputPort());
-	confilter->SetExtractionModeToLargestRegion();
-
-	bool extractMaxIsoSurface = false;
-	// Create a mapper
-	vtkSmartPointer<vtkPolyDataMapper> mapper =
-			vtkSmartPointer<vtkPolyDataMapper>::New();
-	if (extractMaxIsoSurface)
-	{
-		mapper->SetInputConnection(confilter->GetOutputPort());
-	}
-	else
-	{
-		mapper->SetInputConnection(decimate->GetOutputPort());
-	}
-
-	mapper->ScalarVisibilityOff();    // utilize actor's property I set
-
-	// Visualize
-	vtkSmartPointer<vtkActor> actor =
-			vtkSmartPointer<vtkActor>::New();
-	actor->GetProperty()->SetColor(1,1,1);
-	actor->SetMapper(mapper);
-
-
-	vtkSmartPointer<vtkRenderWindow> renWin =
-			vtkSmartPointer<vtkRenderWindow>::New();
-	vtkSmartPointer<vtkRenderer> ren1 =
-			vtkSmartPointer<vtkRenderer>::New();
-	ren1->SetBackground(0.1,0.4,0.2);
-
-	ren1->AddViewProp(actor);
-	ren1->ResetCamera();
-	renWin->AddRenderer(ren1);
-	renWin->SetSize(501,500); // intentional odd and NPOT  width/height
-
-	vtkSmartPointer<vtkRenderWindowInteractor> iren =
-			vtkSmartPointer<vtkRenderWindowInteractor>::New();
-	iren->SetRenderWindow(renWin);
-
-	renWin->Render(); // make sure we have an OpenGL context.
-	iren->Start();
-
+	visualizeRenderWindow(extractLevelSetAndSimplify
+		(create3dVTKImage(hostVol.data(), getDims()), levelSet, decimation));
 
 }
 
