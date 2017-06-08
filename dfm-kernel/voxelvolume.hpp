@@ -61,7 +61,7 @@ public:
 
     }
 
-    void visualizeVolume(float levelSet, float decimation);
+    void visualize();
 
     ~voxelVolume() {
     }

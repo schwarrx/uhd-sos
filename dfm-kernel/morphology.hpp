@@ -11,15 +11,15 @@
 #include <arrayfire.h>
 #include <fftw3.h>
 
-using namespace af;
 
-array indicator(array x);
-array sublevel(array x, double measure);
-unsigned volume(array x);
-array sublevelComplement(array x, double measure);
-array crossCorrelate(array x, array y); // cross-correlation of static x with dynamic y
-array reflect(array x);
-array opening(array x, array y); // morphological opening
-array crossCorrelateFFTR2C(array x, array y);
+
+af::array indicator(af::array x);
+af::array sublevel(af::array x, double measure);
+unsigned volume(af::array x);
+af::array sublevelComplement(af::array x, double measure);
+af::array crossCorrelate(af::array x, af::array y); // cross-correlation of static x with dynamic y
+af::array reflect(af::array x);
+af::array opening(af::array x, af::array y); // morphological opening
+af::array crossCorrelateFFTR2C(af::array x, af::array y);
 
 #endif /* MORPHOLOGY_HPP_ */

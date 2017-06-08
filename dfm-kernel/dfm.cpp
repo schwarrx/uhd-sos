@@ -14,6 +14,8 @@
 #include <mutex>
 #include <af/macros.h>
 
+using namespace std;
+
 af::array morphologicalDFM(voxelVolume* partHost, af::array selem) {
     /**  DFM analysis on GPU using pure morphological operations.
      * Note that this approach places a limitation on the size of the
@@ -48,18 +50,17 @@ af::array morphologicalDFM(voxelVolume* partHost, af::array selem) {
 
 void dfmAnalysis(std::string binvoxFile, int device) {
     /** Do a design for manufacturability analysis using morphological
-     * operations implemented by calculating convolutions batched over
-     * multiple GPUs
+     * operations
      */
 
     cout << "Setting device .. ";
     af::setDevice(device);
     af::info();
-    cout << "done" << endl;
 
     // create a structuring element
-    SphereElement<7> sp( { 7 });
-    //CylinderElement<7> sp({2,2});
+    SphereElement<50> sp( { 10 });
+    //CylinderElement<7> sp({4,2});
+    sp.visualize();
     int selemDim = 7; // could do this using a getDim but that's not needed
 
     cout << "Selem start " << endl;
@@ -70,7 +71,7 @@ void dfmAnalysis(std::string binvoxFile, int device) {
 
     // create the part voxel volume on the host
     voxelVolume* partHost = new voxelVolume(binvoxFile);
-    //partHost->visualizeVolume(1, 0.1);  // visualize the volume if needed
+    //partHost->visualize();  // visualize the volume if needed
 
     cout << "Selem generated" << endl;
 
@@ -83,16 +84,6 @@ void dfmAnalysis(std::string binvoxFile, int device) {
             create3dVTKImage(((partHost->getHostVolume())).data(),
                     partHost->getDims()));
 
-    /* vtkSmartPointer<vtkPolyData> orig = extractLevelSetAndSimplify(
-     create3dVTKImage(((partHost->getHostVolume())).data(),
-     partHost->getDims()), 1, 0);
-
-
-     vtkSmartPointer<vtkPolyData> nonManf = extractLevelSetAndSimplify(
-     create3dVTKImage((nonManufacturable.host<unsigned char>()),
-     partHost->getDims()), 1, 0);
-
-     visualizeNonManfWithOriginal(nonManf, orig);*/
     cout << "Cleaning up " << endl;
 
 }

@@ -14,9 +14,9 @@
 #include <vtkPolyData.h>
 #include <iostream>
 
-typedef unsigned char byte;
 
-vtkSmartPointer<vtkImageData> create3dVTKImage(byte* hostVol, int*dims);
+
+vtkSmartPointer<vtkImageData> create3dVTKImage(unsigned char* hostVol, int*dims);
 
 void visualizeRenderWindow(vtkSmartPointer<vtkPolyData> polyData);
 
@@ -31,5 +31,7 @@ void visualizeNonManfWithOriginal(vtkSmartPointer<vtkPolyData> nonManf,
 
 void visualizeVolumes(vtkSmartPointer<vtkImageData> nonManf,
         vtkSmartPointer<vtkImageData> orig);
+
+void visualizeVolume(vtkSmartPointer<vtkImageData> vol);
 
 #endif // GRAPHICS_HPP_

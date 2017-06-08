@@ -66,7 +66,7 @@ public:
                 val += pow((x - center), 2);
             double radius = il.begin()[0];
 
-            hostVol[i] = (byte) (val < pow(radius,2));
+            hostVol[i] = (byte) (val <= pow(radius,2));
 
         }
 
