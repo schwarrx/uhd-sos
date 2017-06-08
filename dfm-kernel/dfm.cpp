@@ -29,6 +29,13 @@ af::array morphologicalDFM(voxelVolume* partHost, af::array selem) {
     cout << "Copying volume to GPU " << endl;
     af::array part(dims[0], dims[1], dims[2],
             (partHost->getHostVolume()).data());
+
+    cout << "Erosion" << endl;
+    af::array erosion = erode3(part,selem);
+    visualizeVolume(create3dVTKImage(erosion.host<unsigned char>(), dims));
+
+
+
     // calculate the morphological opening
     cout << "starting " << endl;
     af::timer::start();
@@ -58,7 +65,7 @@ void dfmAnalysis(std::string binvoxFile, int device) {
     af::info();
 
     // create a structuring element
-    SphereElement<50> sp( { 10 });
+    SphereElement<20> sp( { 10 });
     //CylinderElement<7> sp({4,2});
     sp.visualize();
     int selemDim = 7; // could do this using a getDim but that's not needed

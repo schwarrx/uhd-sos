@@ -83,7 +83,7 @@ void visualizeVolume(vtkSmartPointer<vtkImageData> vol) {
 			vtkColorTransferFunction>::New();
 	color->AddRGBPoint(0.0, 0.0, 0.0, 1.0);
 	color->AddRGBPoint(40.0, 1.0, 0.0, 0.0);
-	color->AddRGBPoint(255.0, 1.0, 1.0, 1.0);
+	color->AddRGBPoint(40.0, 1.0, 1.0, 1.0);
 	volumeProperty->SetColor(color);
 
 	vtkSmartPointer<vtkVolume> volume = vtkSmartPointer<vtkVolume>::New();
