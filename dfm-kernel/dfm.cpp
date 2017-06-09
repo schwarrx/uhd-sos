@@ -30,9 +30,6 @@ af::array morphologicalDFM(voxelVolume* partHost, af::array selem) {
     af::array part(dims[0], dims[1], dims[2],
             (partHost->getHostVolume()).data());
 
-    cout << "Erosion" << endl;
-    af::array erosion = erode3(part,selem);
-    visualizeVolume(create3dVTKImage(erosion.host<unsigned char>(), dims));
 
 
 
@@ -41,6 +38,12 @@ af::array morphologicalDFM(voxelVolume* partHost, af::array selem) {
     af::timer::start();
     af::array open = opening(part, selem);
     cout << "Done computing opening in  " << af::timer::stop() << " s" << endl;
+
+    cout << "Opening" << endl;
+    //af::array erosion = erode3(part,selem);
+    visualizeVolume(create3dVTKImage(open.host<unsigned char>(), dims));
+
+
     cout << "Computing part - opening " << endl;
     af::timer::start();
     af::array out = part - open;
@@ -65,10 +68,10 @@ void dfmAnalysis(std::string binvoxFile, int device) {
     af::info();
 
     // create a structuring element
-    SphereElement<20> sp( { 10 });
+    SphereElement<7> sp( { 3});
     //CylinderElement<7> sp({4,2});
     sp.visualize();
-    int selemDim = 7; // could do this using a getDim but that's not needed
+    int selemDim = sp.getDims()[0]; // could do this using a getDim but that's not needed
 
     cout << "Selem start " << endl;
     auto selemVolData = sp.getHostVolume();
@@ -83,13 +86,14 @@ void dfmAnalysis(std::string binvoxFile, int device) {
     cout << "Selem generated" << endl;
 
     af::array nonManufacturable = morphologicalDFM(partHost, selem);
+    visualizeVolume(create3dVTKImage(nonManufacturable.host<unsigned char>(), partHost->getDims()));
     //cout << "Writing STL file output " << endl;
 
-    visualizeVolumes(
-            create3dVTKImage((nonManufacturable.host<unsigned char>()),
-                    partHost->getDims()),
-            create3dVTKImage(((partHost->getHostVolume())).data(),
-                    partHost->getDims()));
+//    visualizeVolumes(
+//            create3dVTKImage((nonManufacturable.host<unsigned char>()),
+//                    partHost->getDims()),
+//            create3dVTKImage(((partHost->getHostVolume())).data(),
+//                    partHost->getDims()));
 
     cout << "Cleaning up " << endl;
 
